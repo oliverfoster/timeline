@@ -1,0 +1,18 @@
+.timeline-container {
+    height:100%;
+    width:100%;
+    position:relative;
+}
+.timeline-container.debug {
+    background-color: grey;
+}
+
+
+.timline-container.debug, .timeline-state {
+    top:0px;
+    background-color: white;
+    width: 10em;
+    height: 1.5em;
+    font-size: .8em;
+}
+
