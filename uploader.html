@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title></title>
+    <link rel="stylesheet" href="timeline.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="jquery.v2.js"></script>
+    <script src="velocity.js"></script>
+    <script src="draggabilly.js"></script>
+    <script src="underscore.js"></script>
+    <script src="timeline.js"></script>
+    <script>
+        $(function() {
+            $.timeline.uploaderReady(window.parentWindow, window.parentTimeline);
+        });
+    </script>
+</head>
+<body>
+    <div class="timeline-editor">
+       <div class="assets">
+            <input type="file" class="uploader"></input>
+            <button class="add">Add</button>
+            <img class="preview" />
+       </div>
+    </div>
+</body>
+</html>

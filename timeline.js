@@ -2,22 +2,34 @@
 
     var timelineSelectors = {
         container: ".timeline-container",
-        state: ".timeline-state",
+        state: ".state",
+        allCanvas: ".timeline-container .canvas",
+        canvas: ".canvas",
         editor: ".timeline-editor",
-        uploader: ".timeline-uploader",
-        preview: ".timeline-preview"
+        uploader: ".uploader",
+        uploaderAdd: ".assets .add",
+        preview: ".preview"
     };
 
     var timelineInjectElements = {
-        debugState: '<div class="timeline-state"></div>'
+        debugState: '<div class="state"></div>',
+        toolbar: '<div class="toolbar"><button class="add button">+ Image</button></div>',
+        canvas: '<canvas class="canvas"></canvas>'
     };
 
 
     function timeline_selectContainer(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
         var $containers = $(timelineSelectors.container);
         timeline_setContainerState($containers, "debug enabled");
 
-        var $container = $(event.target);
+        var $target = $(event.target);
+        var $container;
+        if ($target.is(timelineSelectors.container)) $container = $target;
+        else $container = $target.parents().filter(timelineSelectors.container);
+
         pub.$currentContainer = $container
         timeline_setContainerState($container, "selected");
     }
@@ -34,18 +46,129 @@
         $containers.each(function(index, container) {
             var $container = $(container);
             var $state = $(timelineInjectElements.debugState);
-            $container.append($state);
+            var $toolbar = $(timelineInjectElements.toolbar);
+            var $canvas = $(timelineInjectElements.canvas);
+            $container.append($canvas).append($state).append($toolbar);
             pub.options.$currentContainer = $container;
             timeline_setContainerState($container, "debug enabled");
         });
 
         $containers.on("click", timeline_selectContainer);
-        $containers.on("dblclick", timeline_lauchEditor);
+        $containers.find(".button.add").on("click", timeline_lauchUploader);
+
+        var $canvas = $(timelineSelectors.allCanvas);
+        $canvas.on("mousedown", function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            timeline_selectContainer(event);
+
+            canvas_click(event);
+        });
+        $canvas.on("mouseup", function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+        });
+
+        $(window).resize(function() {
+            $canvas.each(function(index, item) {
+                var $item = $(item);
+                $item.attr({
+                    width: $item.width(),
+                    height: $item.height()
+                });
+            });
+        }).resize();
 
     }
 
-    function timeline_lauchEditor() {
-        var newWindow = window.open("editor.html", "_blank");
+
+    var clickPoints = [];
+    function canvas_click(event) {
+
+        if (event.ctrlKey && event.shiftKey) return makeAnimation($("img"), clickPoints, { duration: 10000 });
+
+        var $currentContainer = pub.$currentContainer;
+        var currentCanvas = $currentContainer.find(timelineSelectors.canvas)[0];
+        if (currentCanvas.getContext) {
+            var ctx = currentCanvas.getContext('2d');
+        
+
+            if (event.shiftKey) {
+                clickPoints.push({
+                    x: event.clientX, 
+                    y: event.clientY
+                });
+                canvas_renderPoints(ctx, clickPoints);
+            }
+
+        }
+    }
+
+    function canvas_renderPoints(ctx, points) {
+        var line=new Path2D();
+        for (var i = 0, l = points.length; i < l; i++) {
+            var point = points[i];
+            
+            if (i == 0) {
+                line.moveTo(point.x, point.y);
+            } else {
+                line.lineTo(point.x, point.y);
+            }
+            //ctx.stroke(line);
+        }
+        console.log(points);
+        pathStats(points);
+        makeAnimation($("img"), points, { duration: 10000 });
+    }
+
+    function pathStats(points) {
+        var totalLength = 0;
+        for (var i = 0, l = points.length; i < l; i++) {
+            var point = points[i];
+            
+            if (i == 0) {
+            } else {
+                var a = Math.pow(points[i].x - points[i-1].x,2);
+                var b = Math.pow(points[i].y - points[i-1].y,2);
+                var c = Math.sqrt(a + b);
+                points[i].distance = c;
+                totalLength += c;
+            }
+        }
+        points.distance = totalLength;
+    }
+
+
+    function makeAnimation($img, points, options) {
+        if ($img.length === 0) return;
+
+        var duration = options.duration;
+        var interval = duration / points.distance;
+
+        $img.velocity("stop", true);
+
+        var anim;
+        var deg = 0;
+
+        for (var i = 0, l = points.length; i < l; i++) {
+            var point = points[i];
+                
+            var x = point.x - ($img.width() / 2);
+            var y = point.y - ($img.height() / 2)
+
+
+            if (i == 0) {
+                anim = $img.velocity({ top: y, left: x}, {duration: 0 });
+            } else {
+                anim.velocity({ top: y, left: x, rotateZ: (++deg)+"deg"}, {duration: interval * point.distance, easing: "linear" });
+            }
+        }
+
+    }
+
+
+    function timeline_lauchUploader(event) {
+        var newWindow = window.open("uploader.html", "_blank");
         newWindow.parentWindow = window;
         newWindow.parentTimeline = $.timeline;
     }
@@ -72,7 +195,7 @@
 
 
 
-    function timeline_initializeEditor() {
+    function timeline_initializeUploader() {
         var $uploader = $(timelineSelectors.uploader);
     
         $uploader.on("change", function(event) {
@@ -108,17 +231,20 @@
             "src": file.contents
         });
 
+        $(timelineSelectors.uploaderAdd).off("click").on("click", function() {
 
-        var $newImage = $("<img>", pub.options.parentWindow.document);
-        $newImage.attr({
-            "type": file.type,
-            "src": file.contents
+            var $newImage = $("<img>", pub.options.parentWindow.document);
+            $newImage.attr({
+                "type": $preview.attr("type"),
+                "src": $preview.attr("src")
+            });
+
+            pub.options.parentTimeline.$currentContainer.append($newImage);
+            window.close();
         });
-
-        pub.options.parentTimeline.$currentContainer.append($newImage);
     }
 
-    $.timeline.editorReady = function(parentWindow, parentTimeline) {
+    $.timeline.uploaderReady = function(parentWindow, parentTimeline) {
         options = pub.options = $.extend(true, pub.defaults, {
             parentWindow: parentWindow,
             parentTimeline: parentTimeline,
@@ -126,7 +252,7 @@
             $currentContainer: $(timelineSelectors.editor)
         });
 
-        timeline_initializeEditor()
+        timeline_initializeUploader()
     };
 
 

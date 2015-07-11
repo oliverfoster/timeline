@@ -3,16 +3,43 @@
     width:100%;
     position:relative;
 }
+
+.timeline-container img {
+    position:relative;
+}
+
 .timeline-container.debug {
     background-color: grey;
 }
 
 
-.timline-container.debug, .timeline-state {
+.timeline-container.debug .canvas {
+	position:absolute;
+	top:0px;
+	left:0px;
+	width:100%;
+	height:100%;
+	z-index: 2000;
+}
+
+.timeline-container.debug .state {
     top:0px;
     background-color: white;
     width: 10em;
     height: 1.5em;
     font-size: .8em;
+    position: absolute;
 }
 
+.timeline-container.debug .toolbar {
+	position: absolute;
+	top: 0;
+	right: 0;
+	height: 1.5em;
+	z-index: 2001;
+}
+
+.timeline-container.debug .toolbar .button {
+	height: 2em;
+	background-color: white;
+}
