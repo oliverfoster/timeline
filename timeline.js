@@ -85,7 +85,7 @@
     var clickPoints = [];
     function canvas_click(event) {
 
-        if (event.ctrlKey && event.shiftKey) return makeAnimation($("img"), clickPoints, { duration: 10000 });
+        if (event.ctrlKey && event.shiftKey) return makeAnimation($("img"), clickPoints, { duration: 5 });
 
         var $currentContainer = pub.$currentContainer;
         var currentCanvas = $currentContainer.find(timelineSelectors.canvas)[0];
@@ -114,11 +114,11 @@
             } else {
                 line.lineTo(point.x, point.y);
             }
-            //ctx.stroke(line);
+            ctx.stroke(line);
         }
         console.log(points);
         pathStats(points);
-        makeAnimation($("img"), points, { duration: 10000 });
+        makeAnimation($("img"), points, { duration: 5 });
     }
 
     function pathStats(points) {
@@ -145,10 +145,13 @@
         var duration = options.duration;
         var interval = duration / points.distance;
 
-        $img.velocity("stop", true);
-
         var anim;
         var deg = 0;
+
+        TweenMax.killAll();
+        var tl = new TimelineMax({repeat:2, repeatDelay:1, easing: "ease-in"});
+
+        var currentTime = 0;
 
         for (var i = 0, l = points.length; i < l; i++) {
             var point = points[i];
@@ -158,11 +161,15 @@
 
 
             if (i == 0) {
-                anim = $img.velocity({ top: y, left: x}, {duration: 0 });
+                anim = tl.to( $img[0], 0, { top: y, left: x, rotation: "0deg", ease: "linear" }, "start");
+                anim.to($img[0], duration, {rotation: "360deg", ease:"linear"}, "start");
             } else {
-                anim.velocity({ top: y, left: x, rotateZ: (++deg)+"deg"}, {duration: interval * point.distance, easing: "linear" });
+                anim.to($img[0], (interval * point.distance), { top: y, left: x, ease: "linear" }, currentTime);
+                currentTime +=  (interval * point.distance);
             }
         }
+
+        tl.play();
 
     }
 
